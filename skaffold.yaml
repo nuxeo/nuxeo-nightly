@@ -1,0 +1,26 @@
+apiVersion: skaffold/v1beta11
+kind: Config
+build:
+  tagPolicy:
+    envTemplate:
+      template: "{{.DOCKER_REGISTRY}}/{{.ORG}}/{{.IMAGE_NAME}}:{{.VERSION}}"
+  artifacts:
+    - image: nuxeo-nightly-ui
+      context: ui
+      kaniko:
+        dockerfile: Dockerfile
+        buildArgs:
+          DOCKER_REGISTRY: ${DOCKER_REGISTRY}
+          NUXEO_PACKAGES: ${NUXEO_PACKAGES}
+          NUXEO_WEBUI_VERSION: ${NUXEO_WEBUI_VERSION}
+        buildContext:
+          localDir: {}
+        flags:
+          - --insecure
+          - --insecure-pull
+          - --insecure-registry=${DOCKER_REGISTRY}
+        cache:
+          repo: ${DOCKER_REGISTRY}/${ORG}/nuxeo-nightly-ui/cache
+  cluster:
+    namespace: webui
+
