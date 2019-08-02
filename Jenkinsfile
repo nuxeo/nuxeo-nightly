@@ -27,6 +27,7 @@ pipeline {
   }
   environment {
     ORG = 'nuxeo'
+    APP_NAME = 'nuxeo-nightly-ui'
   }
   stages {
     stage('Web UI build') {
@@ -43,7 +44,26 @@ pipeline {
               sh 'skaffold build -f skaffold.yaml~gen'
             }
           }
-          
+        }
+      }
+    }
+    stage('Deploy Preview') {
+      steps {
+        container('jx-base') {
+          script {
+            def env = readFile('.env').tokenize('\n');
+            withEnv(env) {
+              PREVIEW_NAMESPACE = "$APP_NAME-${BRANCH_NAME.toLowerCase()}-preview"
+              dir('charts/preview') {
+                sh """
+                  kubectl get ns $PREVIEW_NAMESPACE || kubectl create ns $PREVIEW_NAMESPACE
+                  kubectl -n webui get secret instance-clid --export -o yaml | kubectl apply -n $PREVIEW_NAMESPACE -f -
+                  make preview
+                  jx preview --namespace=$PREVIEW_NAMESPACE
+                """
+              }
+            }
+          }
         }
       }
     }

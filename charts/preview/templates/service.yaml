@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: preview
+  labels:
+{{- if .Values.nuxeo.webui.service.annotations }}
+  annotations:
+{{ toYaml .Values.nuxeo.webui.service.annotations | indent 4 }}
+{{- end }}
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+    name: http
+  selector:
+    app: preview
