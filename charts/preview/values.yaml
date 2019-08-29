@@ -28,6 +28,11 @@ nuxeo:
           secretKeyRef:
             name: instance-clid
             key: CLID
+    livenessProbe:
+      initialDelaySeconds: 300
+    readinessProbe:
+      initialDelaySeconds: 300
+      
   mongodb:
     deploy: false
   postgresql:
