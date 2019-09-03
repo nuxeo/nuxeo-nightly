@@ -17,9 +17,18 @@
  *     Nelson Silva <nsilva@nuxeo.com>
  */
 properties([
-  [$class: 'GithubProjectProperty', projectUrlStr: 'https://github.com/nuxeo/nuxeo-web-ui/'],
+  [$class: 'GithubProjectProperty', projectUrlStr: 'https://github.com/nuxeo/nuxeo-nightly/'],
   [$class: 'BuildDiscarderProperty', strategy: [$class: 'LogRotator', daysToKeepStr: '60', numToKeepStr: '60', artifactNumToKeepStr: '5']],
 ])
+
+void setGitHubBuildStatus(String context, String message, String state) {
+  step([
+    $class: 'GitHubCommitStatusSetter',
+    reposSource: [$class: 'ManuallyEnteredRepositorySource', url: 'https://github.com/nuxeo/nuxeo-nightly'],
+    contextSource: [$class: 'ManuallyEnteredCommitContextSource', context: context],
+    statusResultSource: [$class: 'ConditionalStatusResultSource', results: [[$class: 'AnyBuildResult', message: message, state: state]]],
+  ])
+}
 
 pipeline {
   agent {
@@ -46,6 +55,14 @@ pipeline {
           }
         }
       }
+      post {
+        success {
+          setGitHubBuildStatus('docker', 'Build and deploy Docker image', 'SUCCESS')
+        }
+        failure {
+          setGitHubBuildStatus('docker', 'Build and deploy Docker image', 'FAILURE')
+        }
+      }
     }
     stage('Deploy Preview') {
       steps {
@@ -64,6 +81,39 @@ pipeline {
               }
             }
           }
+        }
+      }
+    }
+  }
+  post {
+    success {
+      container('jx-base') {
+        script {
+          if (BRANCH_NAME == 'master') {
+            def env = readFile('.env').tokenize('\n');
+            withEnv(env) {
+              def src =  "\$DOCKER_REGISTRY/\$ORG/nuxeo-nightly-ui:$VERSION"
+              def target =  "\$PUBLIC_DOCKER_REGISTRY/\$ORG/nuxeo-nightly-ui:$VERSION"
+              echo """
+                -----------------------
+                Publishing Docker image
+                -----------------------
+              """
+              sh """
+                docker pull $src
+                docker tag $src $target
+                docker push $target
+              """
+            }
+          }
+        }
+      }
+    }
+    always {
+      script {
+        if (BRANCH_NAME == 'master') {
+          // update JIRA issues
+          step([$class: 'JiraIssueUpdater', issueSelector: [$class: 'DefaultIssueSelector'], scm: scm])
         }
       }
     }
