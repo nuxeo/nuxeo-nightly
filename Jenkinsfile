@@ -32,16 +32,23 @@ void setGitHubBuildStatus(String context, String message, String state) {
 
 pipeline {
   agent {
-    label "jenkins-jx-base"
+    label "jenkins-maven"
   }
   environment {
     ORG = 'nuxeo'
     APP_NAME = 'nuxeo-nightly-ui'
   }
   stages {
-    stage('Web UI build') {
+    stage('Prepare') {
       steps {
-        container('jx-base') {
+        container('maven') {
+          sh './prepare.sh'
+        }
+      }
+    }
+    stage('Docker build') {
+      steps {
+        container('maven') {
           script {
             def env = readFile('.env').tokenize('\n'); 
             withEnv(env) {
@@ -57,16 +64,16 @@ pipeline {
       }
       post {
         success {
-          setGitHubBuildStatus('docker', 'Build and deploy Docker image', 'SUCCESS')
+          setGitHubBuildStatus('docker', 'Build and deploy Docker images', 'SUCCESS')
         }
         failure {
-          setGitHubBuildStatus('docker', 'Build and deploy Docker image', 'FAILURE')
+          setGitHubBuildStatus('docker', 'Build and deploy Docker images', 'FAILURE')
         }
       }
     }
     stage('Deploy Preview') {
       steps {
-        container('jx-base') {
+        container('maven') {
           script {
             def env = readFile('.env').tokenize('\n');
             withEnv(env) {
@@ -87,7 +94,7 @@ pipeline {
   }
   post {
     success {
-      container('jx-base') {
+      container('maven') {
         script {
           if (BRANCH_NAME == 'master') {
             def env = readFile('.env').tokenize('\n');
