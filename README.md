@@ -1,7 +1,7 @@
 ## Nuxeo Nightly
 
 ### About
-Jenkins X pipeline to build Nuxeo server and web UI images.
+Jenkins X pipeline to build custom Nuxeo server and web UI images.
 
 ## License
 

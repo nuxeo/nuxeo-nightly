@@ -5,6 +5,18 @@ build:
     envTemplate:
       template: "{{.DOCKER_REGISTRY}}/{{.ORG}}/{{.IMAGE_NAME}}:{{.VERSION}}"
   artifacts:
+    - image: nuxeo-nightly-server
+      context: server
+      kaniko:
+        dockerfile: Dockerfile
+        buildContext:
+          localDir: {}
+        buildArgs:
+          BUILDER_IMAGE: ${DOCKER_REGISTRY}/${ORG}/builder-cloud:${VERSION}
+          BASE_IMAGE: ${DOCKER_REGISTRY}/${ORG}/base-cloud:${VERSION}
+          NUXEO_PLATFORM_VERSION: ${NUXEO_PLATFORM_VERSION}
+        cache:
+          repo: ${DOCKER_REGISTRY}/${ORG}/cloud/cache
     - image: nuxeo-nightly-ui
       context: ui
       kaniko:
@@ -15,10 +27,6 @@ build:
           NUXEO_WEBUI_VERSION: ${NUXEO_WEBUI_VERSION}
         buildContext:
           localDir: {}
-        flags:
-          - --insecure
-          - --insecure-pull
-          - --insecure-registry=${DOCKER_REGISTRY}
         cache:
           repo: ${DOCKER_REGISTRY}/${ORG}/nuxeo-nightly-ui/cache
   cluster:
